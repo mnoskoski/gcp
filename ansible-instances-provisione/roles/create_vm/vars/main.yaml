@@ -1,0 +1,8 @@
+machine_type: n1-standard-1
+gcp_cred_kind: serviceaccount
+GCP_SERVICE_ACCOUNT_EMAIL: your_mail_account_google@mail.com
+service_account_email: your_mail@mail.com
+credentials_file: ./roles/create_vm/files/auth.json
+project_id: projectId
+image: debian-7
+region_zone: southamerica-east1
