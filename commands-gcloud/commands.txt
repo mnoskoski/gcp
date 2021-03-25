@@ -1,0 +1,90 @@
+#/bin/bash
+
+##create VMs
+gcloud beta compute --project=lab01-207708 instances create elliot-01 --zone=us-central1-a --machine-type=n1-standard-1 --subnet=default --network-tier=PREMIUM --maintenance-policy=MIGRATE --service-account=521755479364-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --tags=http-server,https-server --image=ubuntu-1604-xenial-v20200223 --image-project=ubuntu-os-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=elliot-01 --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any
+gcloud beta compute --project=lab01-207708 instances create elliot-01 --zone=us-central1-a --machine-type=n1-standard-1 --subnet=default --network-tier=PREMIUM --maintenance-policy=MIGRATE --service-account=521755479364-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --tags=http-server,https-server --image=ubuntu-1604-xenial-v20200223 --image-project=ubuntu-os-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=elliot-02 --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any
+gcloud beta compute --project=lab01-207708 instances create elliot-01 --zone=us-central1-a --machine-type=n1-standard-1 --subnet=default --network-tier=PREMIUM --maintenance-policy=MIGRATE --service-account=521755479364-compute@developer.gserviceaccount.com --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append --tags=http-server,https-server --image=ubuntu-1604-xenial-v20200223 --image-project=ubuntu-os-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=elliot-03 --no-shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --reservation-affinity=any
+
+#acesso SSH VMs
+
+vim /etc/modules-load.d/k8s.conf
+#configure kernel modules of VMs
+br_netfilter
+ip_vs_rr
+ip_vs_wrr
+ip_vs_sh
+nf_conntrack_ipv4
+ip_vs
+
+install docker 
+curl -fsSL https://get.docker.com | bash
+
+install kubelet 
+
+install kubeadm
+ - ja vem habilitado os RBAC(controle de acessp)
+
+ inseri a chave pra poder pegar do repositorio: 
+ curl -s  https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
+
+echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/k8s.list
+apt-get update
+apt-get install -y kubelet kubeadm kubectl
+
+api-server - cerebro sabe tudo do cluster
+kube-controler - em qual no vai jogar os deployys
+scheduler - escolhe qual no que deve ir as apps
+proxy - expoe os servicoes do cluster
+etcd - fica todas as informacoes do cluster, somente o api server fala com o etcd ( multiplos master tenho replicado do etcd do k9s tbm)
+coredns - resolve os DNS internoes das apps do cluster
+
+#instlal k8s - inicializando o node do kubernets
+kubeadm init
+
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+  faz a instalacao do weave network
+
+
+pego meus nos:
+  kubectl get node
+
+pego todos os pods de todos os namespaces:
+  kubectl get pods --all-namespaces
+
+
+kubeadm join 10.128.0.5:6443 --token rcynj6.s32ugo353hd7yja7 --discovery-token-ca-cert-hash sha256:e97b7f359cc712cab2f88ae999d8f0fd6fb08170ca8c6cab483e5edacd682c30
+
+
+fazer a instalacao do completion do kubectl pra facilitar a administracao:
+  kubectl completion bash > /etc/bash_completion.d/kubectl
+para fazer auto complte de outros parametros quando acionado o kubectl:
+  source <(kubectl completion bash) 
+  echo "source <(kubectl completion bash)" >> /root/.bashrc - insiro no profile do user de forma que eu nao precise mais executar quando logar
+
+listando mais informacoes sobre os pods dos namespaces:
+  kubectl get pods --all-namespaces -o wide(quer dizer, mais detalhes)
+  kubectl get namespaces 
+  kubectl get pods -n $(namespace_name)
+
+kube-system 
+  sao coisas do kubernetes que nao devemos mexer sem saber o que estamos fazendo 
+
+criando o primeiro deploy: 
+  kubectl run nginx --image nginx
+  kubectl get deployment - kubectl describe deployment $(deployment_name)
+  kubectl get replicaset
+  kubectl get pods
+  kubectl describe replicaset $(replicaset_name)
+
+  kubectl run nginx --image nginx --port=80
+
+Scale of deployments
+  kubectl scale --replicas=5 deployment $(deployment_name)
+
+Remove deployment
+  kubectl delete deployments.apps $(deployment_name)
+
+Criando um service para expor meu deployment
+  kubect expose deployment $(deployment_name) --type=NodePort
+
+
